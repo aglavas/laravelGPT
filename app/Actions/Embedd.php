@@ -2,6 +2,8 @@
 
 namespace App\Actions;
 
+use andreskrey\Readability\Readability;
+use andreskrey\Readability\Configuration;
 use Illuminate\Support\Facades\File;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Illuminate\Support\Str;
@@ -23,22 +25,28 @@ class Embedd
     public function handle()
     {
         $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
+        /** @var Readability $readability */
+        $readability = new Readability(new Configuration());
+        $podcastHtml = file_get_contents("https://podscript.ai/podcasts/lex-fridman-podcast/360-tim-urban-tribalism-marxism-liberalism-social-justice-and-politics/");
+        $readability->parse($podcastHtml);
 
-         $podcastHtml = file_get_contents("https://podscript.ai/podcasts/lex-fridman-podcast/360-tim-urban-tribalism-marxism-liberalism-social-justice-and-politics/");
-//        $content = Str::of(File::get(storage_path('app/podcast.html')))
-        $content = Str::of($podcastHtml)
-            ->after('<strong>')
-            ->split('/<strong>/')
-            ->map(function($bit) {
-                return strip_tags($bit);
-            })->toArray();
+        $content = Str::of(strip_tags($readability->getContent()))
+            ->split(1000)
+            ->toArray();
 
-        array_pop($content);
+        $contentCount = count($content);
+
+        if ($contentCount > 1 && strlen($content[$contentCount - 1]) < 500) {
+            $content[$contentCount - 2] .= $content[$contentCount - 1];
+            array_pop($content);
+        }
 
         $embeddings = OpenAI::embeddings()->create([
             'model' => 'text-embedding-ada-002',
             'input' => $content,
         ])->embeddings;
+
+        $pinecone->index('laravelgpt')->vectors()->delete([], 'podcast', true);
 
         $pinecone->index('laravelgpt')->vectors()->upsert(
             collect($embeddings)->map(function ($embedding, $index) use ($content) {
@@ -52,6 +60,8 @@ class Embedd
             })->toArray(),
             'podcast'
         );
+
+        $results = $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'podcast', [], 4)->json();
 
         return true;
     }

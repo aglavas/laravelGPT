@@ -36,9 +36,11 @@ Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) 
         $conversation = Conversation::findOrFail($id);
     }
 
+    $newPrompt = $request->input('prompt');
+
     /** @var \App\Models\Conversation $conversation */
     $conversation->messages()->create([
-        'content' => $request->input('prompt'),
+        'content' => $newPrompt,
         'role' => 'user'
     ]);
 
@@ -53,14 +55,12 @@ Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) 
 
     $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
         'model' => 'text-embedding-ada-002',
-        'input' => $request->input('prompt')
+        'input' => $newPrompt
     ]);
 
-    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'podcast', [], 4)->json();
+    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'podcast', [], 5)->json();
 
-//    $test = collect($results['matches'])->pluck('metadata.text')->join("\n\n---\n\n");
-//
-//    dd($results, $test);
+    //$test = collect($results['matches'])->pluck('metadata.text')->join("\n\n---\n\n");
 
     $systemMessage = [
         'role' => 'system',
