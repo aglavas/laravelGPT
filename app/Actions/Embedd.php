@@ -4,7 +4,6 @@ namespace App\Actions;
 
 use andreskrey\Readability\Readability;
 use andreskrey\Readability\Configuration;
-use Illuminate\Support\Facades\File;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Illuminate\Support\Str;
 use OpenAI\Laravel\Facades\OpenAI;

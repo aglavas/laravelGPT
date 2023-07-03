@@ -2,10 +2,7 @@
 
 namespace App\Actions;
 
-use andreskrey\Readability\Readability;
-use andreskrey\Readability\Configuration;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\File;
 use Spatie\PdfToText\Pdf;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Illuminate\Support\Str;

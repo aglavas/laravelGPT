@@ -18,6 +18,10 @@ return [
         'path' => env('PDF_TO_TEXT_PATH', '/usr/bin/pdftotext')
     ],
 
+    'browserless' => [
+        'key' => env('BROWSERLESS_KEY')
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
