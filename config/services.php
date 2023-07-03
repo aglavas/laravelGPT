@@ -14,6 +14,10 @@ return [
     |
     */
 
+    'pdftotext' => [
+        'path' => env('PDF_TO_TEXT_PATH', '/usr/bin/pdftotext')
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
