@@ -16,12 +16,12 @@ class Embedd
     /**
      * @var string
      */
-    public $commandSignature = 'embed';
+    public string $commandSignature = 'embed';
 
     /**
      *
      */
-    public function handle()
+    public function handle(): bool
     {
         $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
         /** @var Readability $readability */
@@ -60,8 +60,7 @@ class Embedd
             'podcast'
         );
 
-        $results = $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'podcast', [], 4)->json();
-
+        $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'podcast', [], 4)->json();
         return true;
     }
 }

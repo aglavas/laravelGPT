@@ -24,9 +24,13 @@ class FirstPrompt
      * @param int $id
      * @return mixed
      */
-    public function handle(array $messages, int $id)
+    public function handle(array $messages, int $id = null)
     {
-        $conversation = Conversation::find($id);
+        if ($id) {
+            $conversation = Conversation::find($id);
+        } else {
+            $conversation = Conversation::create();
+        }
 
         activity()
             ->event('message_prompt')

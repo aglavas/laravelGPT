@@ -4,7 +4,9 @@ namespace App\Actions;
 
 use andreskrey\Readability\Readability;
 use andreskrey\Readability\Configuration;
+use App\Jobs\ScrapeEmbeddUrl;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Illuminate\Support\Str;
@@ -18,60 +20,70 @@ class EmbeddWeb
     /**
      * @var string
      */
-    public $commandSignature = 'embed:web {url}';
+    public string $commandSignature = 'embed:web {argument}';
 
     /**
      * @var string
      */
-    private $content;
+    private string $content;
 
-//    public function asCommand(Command $command): void
-//    {
-//        $this->handle(
-//            User::findOrFail($command->argument('user_id')),
-//            $command->argument('role')
-//        );
-//
-//        $command->info('Done!');
-//    }
+    /**
+     * @var string
+     */
+    private string $contentRaw;
+
+    /**
+     * @var array
+     */
+    private array $links;
+
+
+    /**
+     * @var bool
+     */
+    public bool $externalOnly = true;
 
     /**
      *
      */
-    public function handle(Command $command)
+    public function handle(Command $command): bool
     {
-        $url = $command->argument('url');
-
-        $key = config('services.browserless.key');
-        $response = Http::post('https://chrome.browserless.io/content?stealth=true&token='.$key, [
-            'url' => $url,
-            'waitFor' => 1000,
-        ]);
+        $url = $command->argument('argument');
+        $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
+        $cacheKey = 'scrape:' . md5($url);
+        if (Cache::has($cacheKey)) {
+            $scrapedData = Cache::get($cacheKey);
+            $this->contentRaw = $scrapedData;
+        } else {
+            $this->scrapeUrl($url);
+            $scrapedData = $this->contentRaw;
+            Cache::put($cacheKey, $scrapedData, 60);
+        }
         /** @var Readability $readability */
         $readability = new Readability(new Configuration());
-        $readability->parse($response->body());
+        $readability->parse($this->contentRaw);
         $this->content = $readability->getContent();
-//        dd($this->getAllLinks());
-        $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
+        $this->links = $this->getAllLinks();
+
+        //All urls
+        if (!$this->externalOnly) {
+            $this->content = $this->contentRaw;
+            $this->links = $this->getAllLinks();
+            $this->content = $readability->getContent();
+        }
 
         $content = Str::of(strip_tags($this->content))
             ->split(1000)
             ->toArray();
-
-        $contentCount = count($content);
-
-        if ($contentCount > 1 && strlen($content[$contentCount - 1]) < 500) {
-            $content[$contentCount - 2] .= $content[$contentCount - 1];
+        if (count($content) > 1 && strlen($content[count($content) - 1]) < 500) {
+            $content[count($content) - 2] .= $content[count($content) - 1];
             array_pop($content);
         }
-
         $embeddings = OpenAI::embeddings()->create([
             'model' => 'text-embedding-ada-002',
             'input' => $content,
         ])->embeddings;
-
         $pinecone->index('laravelgpt')->vectors()->delete([], 'web', true);
-
         $pinecone->index('laravelgpt')->vectors()->upsert(
             collect($embeddings)->map(function ($embedding, $index) use ($content, $url) {
                 return [
@@ -79,8 +91,8 @@ class EmbeddWeb
                     'values' => $embedding->embedding,
                     'metadata' => [
                         'text' => $content[$index],
-//                        'type' => 'web',
-//                        'category' => 'product',
+                        'type' => 'web-scrapping',
+                        'category' => 'podcast',
                         'url' => md5($url)
                     ]
                 ];
@@ -88,10 +100,41 @@ class EmbeddWeb
             'web'
         );
 
-        $results = $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'web', [], 4)->json();
+//        $results = $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'web', [
+//            'type' => [
+//                '$eq' => 'web-scrapping'
+//            ]
+////            'category' => [
+////                '$in' => ['product']
+////            ]
+//        ], 4)->json();
 
+        foreach ($this->links as $link) {
+            ScrapeEmbeddUrl::dispatch(['url' => $link, 'depth' => 1]);
+        }
+
+        activity()
+            ->event('embedd_web')
+            ->withProperties([$url])
+            ->log('EMBEDD_LOG');
 
         return true;
+    }
+
+    /**
+     * Scrape Url
+     *
+     * @param string $url
+     * @return void
+     */
+    protected function scrapeUrl(string $url)
+    {
+        $key = config('services.browserless.key');
+        $response = Http::post('https://chrome.browserless.io/content?stealth=true&token='.$key, [
+            'url' => $url,
+            'waitFor' => 1000,
+        ]);
+        $this->contentRaw = $response->body();
     }
 
     /**

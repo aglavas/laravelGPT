@@ -21,7 +21,13 @@ use \Probots\Pinecone\Client as Pinecone;
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/', function (FirstPrompt $prompt) {
-    return $prompt->handle("Hello how are you?");
+    $conversation = [];
+    $promptMessage = [
+        'role' => 'user',
+        'content' => "Hello how are you?",
+    ];
+    $conversation[] = $promptMessage;
+    return $prompt->handle($conversation);
 });
 
 Route::get('/conversations/{id}', function ($id) {
@@ -38,8 +44,8 @@ Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) 
         $conversation = Conversation::findOrFail($id);
     }
 
+    $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
     $newPrompt = $request->input('prompt');
-
     /** @var \App\Models\Conversation $conversation */
     $conversation->messages()->create([
         'content' => $newPrompt,
@@ -53,28 +59,16 @@ Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) 
         ];
     })->toArray();
 
-    $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
+    //Podcast basic example
 
-    $pattern = '~https?://\S+~';
-    preg_match_all($pattern, $newPrompt, $matches);
-    $urls = collect($matches[0] ?? []);
-    $urls->each(function($url) {
-        Artisan::call('embed:web', ['url' => $url]);
-    });
-
-    $cleanPrompt = $urls->reduce(function (string $carry, string $url) {
-        return Str::remove($url, $carry);
-    }, $request->input('prompt'));
-
-
-    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
-        'model' => 'text-embedding-ada-002',
-        'input' => $cleanPrompt
-    ]);
+//    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
+//        'model' => 'text-embedding-ada-002',
+//        'input' => $request->input('prompt')
+//    ]);
 
 //    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'podcast', [], 5)->json();
-    //    $test = collect($results['matches'])->pluck('metadata.text')->join("\n\n---\n\n");
-    //    $systemMessage = [
+//    $test = collect($results['matches'])->pluck('metadata.text')->join("\n\n---\n\n");
+//    $systemMessage = [
 //        'role' => 'system',
 //        'content' => sprintf(
 //            'Base your answer on the February 2023 podcast episode between Tim Urban and Lex Fridman. Here are some snippets from that may help you answer: %s',
@@ -82,15 +76,51 @@ Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) 
 //            ),
 //    ];
 
+    //PDF example
+
+//    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
+//        'model' => 'text-embedding-ada-002',
+//        'input' => $request->input('prompt')
+//    ]);
+
 //    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'wef', [], 4)->json();
 //    $context = collect($results['matches'])
 //        ->map(function ($match) {
 //            return 'From page number: '. $match['metadata']['page'] . "\n" . $match['metadata']['text'];
 //        })->join("\n\n---\n\n");
+//    $systemMessage = [
+//        'role' => 'system',
+//        'content' => sprintf(
+//            'Here are relevant snippets from the 2023 WEF Global Risk Report. You should base your answer on them: %s',
+//            $context,
+//        ),
+//    ];
 
+    //Web scrapping example
 
-    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'web', [], 4)->json();
+    $pattern = '~https?://\S+~';
+    preg_match_all($pattern, $newPrompt, $matches);
+    $urls = collect($matches[0] ?? []);
+    $urls->each(function($url) {
+        Artisan::call('embed:web', ['argument' => $url]);
+    });
+    $cleanPrompt = $urls->reduce(function (string $carry, string $url) {
+        return Str::remove($url, $carry);
+    }, $request->input('prompt'));
 
+    //Add URLS back
+    $urlsString = implode(', ', $urls->toArray());
+    $cleanPromptWithUrl = $cleanPrompt . " $urlsString";
+
+    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
+        'model' => 'text-embedding-ada-002',
+        'input' => $cleanPrompt
+    ]);
+    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'web', [
+        'type' => [
+            '$eq' => 'web-scrapping'
+        ]
+    ], 4)->json();
     $context = collect($results['matches'])
         ->map(function ($match) {
             return $match['metadata']['text'];
@@ -111,7 +141,6 @@ Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) 
         ];
     }
     $result = $prompt->handle(array_merge([$systemMessage], $messages), $conversation->id);
-
     $conversation->messages()->create([
         'content' => $result . "\n" . collect($results['matches'])->pluck('metadata.page')->join(','),
         'role' => 'assistant'

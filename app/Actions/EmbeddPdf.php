@@ -16,12 +16,12 @@ class EmbeddPdf
     /**
      * @var string
      */
-    public $commandSignature = 'embed:pdf';
+    public string $commandSignature = 'embed:pdf';
 
     /**
      *
      */
-    public function handle()
+    public function handle(): bool
     {
         $fileText = Pdf::getText(
             storage_path('app/WEF_Global_Risks_Report_2023.pdf'),
@@ -55,9 +55,7 @@ class EmbeddPdf
                 'wef'
             );
         });
-
-
-        $results = $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'wef', [], 4)->json();
+        $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'wef', [], 4)->json();
 
         return true;
     }
