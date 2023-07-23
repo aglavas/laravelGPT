@@ -5,6 +5,7 @@ use App\Actions\FirstPrompt;
 use Illuminate\Http\Request;
 use App\Models\Conversation;
 use Illuminate\Support\Str;
+use App\Actions\StreamingPrompt;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,9 +38,16 @@ Route::get('/conversations/{id}', function ($id) {
     ]);
 })->name('conversation');
 
-Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) {
+Route::post('/chat/{id}', function (Request $request, StreamingPrompt $prompt, $id) {
     if ($id == 'new') {
         $conversation = Conversation::create();
+
+        $systemMessage = [
+            'role' => 'system',
+            'content' => 'You are helpful assistant.',
+        ];
+
+        $conversation->messages()->create($systemMessage);
     } else {
         $conversation = Conversation::findOrFail($id);
     }
@@ -98,53 +106,54 @@ Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) 
 
     //Web scrapping example
 
-    $pattern = '~https?://\S+~';
-    preg_match_all($pattern, $newPrompt, $matches);
-    $urls = collect($matches[0] ?? []);
-    $urls->each(function($url) {
-        Artisan::call('embed:web', ['argument' => $url]);
-    });
-    $cleanPrompt = $urls->reduce(function (string $carry, string $url) {
-        return Str::remove($url, $carry);
-    }, $request->input('prompt'));
+//    $pattern = '~https?://\S+~';
+//    preg_match_all($pattern, $newPrompt, $matches);
+//    $urls = collect($matches[0] ?? []);
+//    $urls->each(function($url) {
+//        Artisan::call('embed:web', ['argument' => $url]);
+//    });
+//    $cleanPrompt = $urls->reduce(function (string $carry, string $url) {
+//        return Str::remove($url, $carry);
+//    }, $request->input('prompt'));
+//
+//    //Add URLS back
+//    $urlsString = implode(', ', $urls->toArray());
+//    $cleanPromptWithUrl = $cleanPrompt . " $urlsString";
+//
+//    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
+//        'model' => 'text-embedding-ada-002',
+//        'input' => $cleanPrompt
+//    ]);
+//    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'web', [
+//        'type' => [
+//            '$eq' => 'web-scrapping'
+//        ]
+//    ], 4)->json();
+//    $context = collect($results['matches'])
+//        ->map(function ($match) {
+//            return $match['metadata']['text'];
+//        })->join("\n\n---\n\n");
+//
+//    if ($urls->isNotEmpty()) {
+//        $systemMessage = [
+//            'role' => 'system',
+//            'content' => sprintf(
+//                'Here are relevant snippets. You should base your answer on them: %s',
+//                $context,
+//                ),
+//        ];
+//    } else {
+//        $systemMessage = [
+//            'role' => 'system',
+//            'content' => 'You are helpful assistant.',
+//        ];
+//    }
+    //$result = $prompt->handle(array_merge([$systemMessage], $messages), $conversation->id);
 
-    //Add URLS back
-    $urlsString = implode(', ', $urls->toArray());
-    $cleanPromptWithUrl = $cleanPrompt . " $urlsString";
-
-    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
-        'model' => 'text-embedding-ada-002',
-        'input' => $cleanPrompt
-    ]);
-    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'web', [
-        'type' => [
-            '$eq' => 'web-scrapping'
-        ]
-    ], 4)->json();
-    $context = collect($results['matches'])
-        ->map(function ($match) {
-            return $match['metadata']['text'];
-        })->join("\n\n---\n\n");
-
-    if ($urls->isNotEmpty()) {
-        $systemMessage = [
-            'role' => 'system',
-            'content' => sprintf(
-                'Here are relevant snippets. You should base your answer on them: %s',
-                $context,
-                ),
-        ];
-    } else {
-        $systemMessage = [
-            'role' => 'system',
-            'content' => 'You are helpful assistant.',
-        ];
-    }
-    $result = $prompt->handle(array_merge([$systemMessage], $messages), $conversation->id);
-    $conversation->messages()->create([
-        'content' => $result . "\n" . collect($results['matches'])->pluck('metadata.page')->join(','),
+    $pendingMessage = $conversation->messages()->create([
+        'content' => '',
         'role' => 'assistant'
     ]);
-
+    StreamingPrompt::dispatch($pendingMessage, $messages);
     return redirect()->route('conversation', ['id' => $conversation->id]);
 })->name('chat');
