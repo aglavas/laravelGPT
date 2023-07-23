@@ -27,6 +27,11 @@ return [
         'key' => env('BROWSERLESS_KEY')
     ],
 
+    'scenario' => [
+        'key' => env('SCENARIO_API_KEY'),
+        'secret' => env('SCENARIO_API_SECRET'),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
