@@ -5,6 +5,10 @@ use App\Actions\FirstPrompt;
 use Illuminate\Http\Request;
 use App\Models\Conversation;
 use Illuminate\Support\Str;
+use App\Actions\AssessWebAccessRequirement;
+use App\Services\SearchClient;
+use App\Actions\GetWebpageContent;
+use \App\Actions\CondenseText;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +32,27 @@ Route::get('/', function (FirstPrompt $prompt) {
     ];
     $conversation[] = $promptMessage;
     return $prompt->handle($conversation);
+});
+
+Route::get('/search', function (
+    AssessWebAccessRequirement $decision,
+    SearchClient $searchClient,
+    GetWebpageContent $webpageContent,
+    CondenseText $condenseText
+) {
+    $query = 'What are the latest local news in Berlin?';
+
+    if (!$decision->handle($query)) {
+        return 'No';
+    }
+
+    $result = $searchClient->search($query);
+
+    $links = collect($result['items'])->pluck('link');
+
+    $content = $webpageContent->handle($links[0]);
+
+    return $condenseText->handle($content);
 });
 
 Route::get('/conversations/{id}', function ($id) {

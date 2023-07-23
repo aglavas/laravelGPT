@@ -18,6 +18,11 @@ return [
         'path' => env('PDF_TO_TEXT_PATH', '/usr/bin/pdftotext')
     ],
 
+    'google' => [
+        'search_key' => env('GOOGLE_SEARCH_KEY', null),
+        'search_cx' => env('GOOGLE_SEARCH_CX', null),
+    ],
+
     'browserless' => [
         'key' => env('BROWSERLESS_KEY')
     ],
