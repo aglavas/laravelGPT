@@ -36,6 +36,24 @@ return [
             'throw' => false,
         ],
 
+        'ai_images' => [
+            'driver' => 'local',
+            'root' => storage_path('app/images'),
+            'throw' => false,
+        ],
+
+        'audio_source' => [
+            'driver' => 'local',
+            'root' => storage_path('app/audio'),
+            'throw' => false,
+        ],
+
+        'audio_transcripts' => [
+            'driver' => 'local',
+            'root' => storage_path('app/audio_transcripts'),
+            'throw' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

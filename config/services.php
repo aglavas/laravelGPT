@@ -32,6 +32,10 @@ return [
         'secret' => env('SCENARIO_API_SECRET'),
     ],
 
+    'stability_ai' => [
+        'key' => env('STABILITY_API_KEY'),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
