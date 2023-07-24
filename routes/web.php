@@ -1,14 +1,12 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use App\Actions\FirstPrompt;
+use Inertia\Inertia;
 use Illuminate\Http\Request;
-use App\Models\Conversation;
-use Illuminate\Support\Str;
-use App\Actions\AssessWebAccessRequirement;
-use App\Services\SearchClient;
-use App\Actions\GetWebpageContent;
-use \App\Actions\CondenseText;
+use App\Actions\EmbeddWebV2;
+use App\Models\SourceUrl;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,160 +14,53 @@ use \App\Actions\CondenseText;
 |--------------------------------------------------------------------------
 |
 | Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
 |
 */
 
-use \Probots\Pinecone\Client as Pinecone;
-use Illuminate\Support\Facades\Artisan;
-
-Route::get('/', function (FirstPrompt $prompt) {
-    $conversation = [];
-    $promptMessage = [
-        'role' => 'user',
-        'content' => "Hello how are you?",
-    ];
-    $conversation[] = $promptMessage;
-    return $prompt->handle($conversation);
+Route::get('/', function () {
+    return Inertia::render('Welcome', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'laravelVersion' => Application::VERSION,
+        'phpVersion' => PHP_VERSION,
+    ]);
 });
 
-Route::get('/search', function (
-    AssessWebAccessRequirement $decision,
-    SearchClient $searchClient,
-    GetWebpageContent $webpageContent,
-    CondenseText $condenseText
-) {
-    $query = 'What are the latest local news in Berlin?';
-
-    if (!$decision->handle($query)) {
-        return 'No';
+Route::get('/embed', function (Request $request, EmbeddWebV2 $embedWeb, SourceUrl $sourceUrl) {
+    if (app()->isProduction()) {
+        return;
     }
 
-    $result = $searchClient->search($query);
-
-    $links = collect($result['items'])->pluck('link');
-
-    $content = $webpageContent->handle($links[0]);
-
-    return $condenseText->handle($content);
+    $url = $request->input('url', null);
+    $embedWeb->handle($url);
+    $sourceUrl->create([
+        'url' => $url
+    ]);
 });
 
-Route::get('/conversations/{id}', function ($id) {
-    $conversation = ($id == 'new') ? null : Conversation::find($id);
-    return view('conversation', [
-        'conversation' => $conversation
-    ]);
-})->name('conversation');
+Route::get('/widget', function () {
+    return Inertia::render('Widget/Home');
+});
 
-Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) {
-    if ($id == 'new') {
-        $conversation = Conversation::create();
-    } else {
-        $conversation = Conversation::findOrFail($id);
-    }
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard', [
+            'urls' => SourceUrl::all()->map(fn (SourceUrl $url) => $url->url)
+        ]);
+    })->name('dashboard');
+    Route::post('/context', function (Request $request, EmbeddWebV2 $embedWeb, SourceUrl $sourceUrl) {
+        $url = $request->input('url', null);
+        $embedWeb->handle($url);
+        $sourceUrl->create([
+            'url' => $url
+        ]);
+        return redirect()->route('dashboard');
+    })->name('context.create');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
-    $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
-    $newPrompt = $request->input('prompt');
-    /** @var \App\Models\Conversation $conversation */
-    $conversation->messages()->create([
-        'content' => $newPrompt,
-        'role' => 'user'
-    ]);
-
-    $messages = $conversation->messages->map(function (\App\Models\Message $message) {
-        return[
-          'content' => $message->content,
-          'role' => $message->role,
-        ];
-    })->toArray();
-
-    //Podcast basic example
-
-//    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
-//        'model' => 'text-embedding-ada-002',
-//        'input' => $request->input('prompt')
-//    ]);
-
-//    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'podcast', [], 5)->json();
-//    $test = collect($results['matches'])->pluck('metadata.text')->join("\n\n---\n\n");
-//    $systemMessage = [
-//        'role' => 'system',
-//        'content' => sprintf(
-//            'Base your answer on the February 2023 podcast episode between Tim Urban and Lex Fridman. Here are some snippets from that may help you answer: %s',
-//            collect($results['matches'])->pluck('metadata.text')->join("\n\n---\n\n"),
-//            ),
-//    ];
-
-    //PDF example
-
-//    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
-//        'model' => 'text-embedding-ada-002',
-//        'input' => $request->input('prompt')
-//    ]);
-
-//    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'wef', [], 4)->json();
-//    $context = collect($results['matches'])
-//        ->map(function ($match) {
-//            return 'From page number: '. $match['metadata']['page'] . "\n" . $match['metadata']['text'];
-//        })->join("\n\n---\n\n");
-//    $systemMessage = [
-//        'role' => 'system',
-//        'content' => sprintf(
-//            'Here are relevant snippets from the 2023 WEF Global Risk Report. You should base your answer on them: %s',
-//            $context,
-//        ),
-//    ];
-
-    //Web scrapping example
-
-    $pattern = '~https?://\S+~';
-    preg_match_all($pattern, $newPrompt, $matches);
-    $urls = collect($matches[0] ?? []);
-    $urls->each(function($url) {
-        Artisan::call('embed:web', ['argument' => $url]);
-    });
-    $cleanPrompt = $urls->reduce(function (string $carry, string $url) {
-        return Str::remove($url, $carry);
-    }, $request->input('prompt'));
-
-    //Add URLS back
-    $urlsString = implode(', ', $urls->toArray());
-    $cleanPromptWithUrl = $cleanPrompt . " $urlsString";
-
-    $question = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
-        'model' => 'text-embedding-ada-002',
-        'input' => $cleanPrompt
-    ]);
-    $results = $pinecone->index('laravelgpt')->vectors()->query($question->embeddings[0]->embedding, 'web', [
-        'type' => [
-            '$eq' => 'web-scrapping'
-        ]
-    ], 4)->json();
-    $context = collect($results['matches'])
-        ->map(function ($match) {
-            return $match['metadata']['text'];
-        })->join("\n\n---\n\n");
-
-    if ($urls->isNotEmpty()) {
-        $systemMessage = [
-            'role' => 'system',
-            'content' => sprintf(
-                'Here are relevant snippets. You should base your answer on them: %s',
-                $context,
-                ),
-        ];
-    } else {
-        $systemMessage = [
-            'role' => 'system',
-            'content' => 'You are helpful assistant.',
-        ];
-    }
-    $result = $prompt->handle(array_merge([$systemMessage], $messages), $conversation->id);
-    $conversation->messages()->create([
-        'content' => $result . "\n" . collect($results['matches'])->pluck('metadata.page')->join(','),
-        'role' => 'assistant'
-    ]);
-
-    return redirect()->route('conversation', ['id' => $conversation->id]);
-})->name('chat');
+require __DIR__.'/auth.php';
