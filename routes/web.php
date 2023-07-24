@@ -7,6 +7,8 @@ use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Actions\EmbeddWebV2;
 use App\Models\SourceUrl;
+use App\Http\Controllers\ShowWidgetConversationController;
+use App\Http\Controllers\HandlePromptController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,8 +42,15 @@ Route::get('/embed', function (Request $request, EmbeddWebV2 $embedWeb, SourceUr
     ]);
 });
 
-Route::get('/widget', function () {
-    return Inertia::render('Widget/Home');
+Route::prefix('widget')->group(function () {
+    Route::get('/', function () {
+        return Inertia::render('Widget/Widget', [
+            'conversation' => null
+        ]);
+    });
+
+    Route::get('conversation/{id}', ShowWidgetConversationController::class)->name('widget.conversation.show');
+    Route::post('conversation/{id}', HandlePromptController::class)->name('widget.conversation.prompt');
 });
 
 Route::middleware('auth')->group(function () {
