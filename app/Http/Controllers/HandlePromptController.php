@@ -29,11 +29,11 @@ class HandlePromptController extends Controller
 
         $pendingMessage = $conversation->messages()->create([
             'content' => '',
-            'role' => 'user'
+            'role' => 'assistant'
         ]);
 
         HandlePrompt::dispatch($promptMessage, $pendingMessage);
 
-        return redirect()->action(ShowWidgetConversationController::class, ['publicId' => $conversation->public_id]);
+        return redirect()->action(ShowWidgetConversationController::class, ['id' => $conversation->public_id]);
     }
 }

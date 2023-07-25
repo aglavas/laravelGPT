@@ -4,9 +4,7 @@ namespace App\Actions;
 
 use App\Events\PromptResponseStarted;
 use App\Events\PromptResponseUpdated;
-use App\Models\Conversation;
 use App\Models\Message;
-use Illuminate\Console\Command;
 use Lorisleiva\Actions\Concerns\AsAction;
 use OpenAI\Laravel\Facades\OpenAI;
 
@@ -18,17 +16,18 @@ class HandlePrompt
     use AsAction;
 
     /**
-     * @param array $messages
-     * @param int $id
-     * @return mixed
+     * @param Message $promptMessage
+     * @param Message $pendingMessage
+     * @return void
      */
-    public function handle(Message $promptMessage, Message $pendingMessage)
+    public function handle(Message $promptMessage, Message $pendingMessage): void
     {
+        //$conversationId = $pendingMessage->conversation_id;
         PromptResponseStarted::dispatch($pendingMessage);
-
+        $messages = $promptMessage->conversation->toOpenAIChatMessages($promptMessage);
         $response = OpenAI::chat()->create([
             'model' => 'gpt-3.5-turbo-16k',
-            'messages' => $promptMessage->conversation->toOpenAIChatMessages()
+            'messages' => $messages
         ]);
 
         $pendingMessage->content = $response->choices[0]->message->content;

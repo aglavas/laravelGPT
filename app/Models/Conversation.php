@@ -35,11 +35,12 @@ class Conversation extends Model
     public function toOpenAIChatMessages(Message $upTo): array
     {
         return $this->messages()
+            ->where('id', '<=', $upTo->id)
             ->get()
-            ->reject(fn (Message $message) => $message->isPending())
+            //->reject(fn (Message $message) => $message->isPending())
             ->map(fn (Message $message) => [
                 'content' => $message->content,
-                'role' => $message->role,
+                'role' => $message->role
             ])
             ->toArray();
     }

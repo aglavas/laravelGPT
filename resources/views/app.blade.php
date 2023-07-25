@@ -17,5 +17,9 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+
+        <div style="position: fixed; bottom: 10px; right: 10px;">
+            <iframe src="http://localhost:8000/widget" style="width: 300px; height: 300px; border: none; overflow: hidden;" scrolling="no"></iframe>
+        </div>
     </body>
 </html>
