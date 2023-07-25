@@ -9,7 +9,9 @@ import InputError from "@/Components/InputError.vue";
 const props = defineProps({
     url: {
         type: String,
-        required: true,
+    },
+    conversations: {
+        type: Array
     },
     urls : {
         type: Array
@@ -23,7 +25,7 @@ const form = useForm({
 
 const submit = () => {
     form.post(route('context.create'), {
-        onFinish: () => form.reset('url'),
+        onSuccess: () => form.reset('url'),
     });
 };
 
@@ -41,6 +43,14 @@ const submit = () => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900 dark:text-gray-100">
+
+                        <div class="mt-12">
+                            <div class="font-bold">Conversations</div>
+                            <div v-for="conversation in conversations">
+                                <a :href="route('dashboard.conversation.show', conversation.id)">{{ conversation.id }}</a>
+                            </div>
+                        </div>
+
                         <form @submit.prevent="submit">
                             <div>
                                 <InputLabel for="url" value="Url" />

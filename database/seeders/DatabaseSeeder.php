@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Conversation;
+use App\Models\Message;
+use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Http;
@@ -15,6 +18,14 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // \App\Models\User::factory(10)->create();
+
+        Message::factory()
+            ->count(6)
+            ->for(Conversation::factory())
+            ->state(new Sequence(
+                ['role' => 'user'],
+                ['role' => 'assistant'],
+            ))->create();
 
          \App\Models\User::factory()->create([
              'name' => 'Test2 User',

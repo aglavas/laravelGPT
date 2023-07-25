@@ -22,8 +22,8 @@ class HandlePrompt
      */
     public function handle(Message $promptMessage, Message $pendingMessage): void
     {
-        //$conversationId = $pendingMessage->conversation_id;
         PromptResponseStarted::dispatch($pendingMessage);
+        AddContextToPromptMessage::make()->handle($promptMessage);;
         $messages = $promptMessage->conversation->toOpenAIChatMessages($promptMessage);
         $response = OpenAI::chat()->create([
             'model' => 'gpt-3.5-turbo-16k',
@@ -32,7 +32,6 @@ class HandlePrompt
 
         $pendingMessage->content = $response->choices[0]->message->content;
         $pendingMessage->save();
-
         PromptResponseUpdated::dispatch($pendingMessage);
     }
 }

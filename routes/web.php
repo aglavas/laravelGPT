@@ -9,6 +9,9 @@ use App\Actions\EmbeddWebV2;
 use App\Models\SourceUrl;
 use App\Http\Controllers\ShowWidgetConversationController;
 use App\Http\Controllers\HandlePromptController;
+use App\Http\Controllers\ShowDashboardController;
+use App\Http\Controllers\ShowDashboardConversationController;
+use App\Http\Controllers\UpdateDashboardConversationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,11 +57,9 @@ Route::prefix('widget')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard', [
-            'urls' => SourceUrl::all()->map(fn (SourceUrl $url) => $url->url)
-        ]);
-    })->name('dashboard');
+    Route::get('/dashboard', ShowDashboardController::class)->name('dashboard');
+    Route::get('/dashboard/conversation/{conversation}', ShowDashboardConversationController::class)->name('dashboard.conversation.show');
+    Route::post('/dashboard/conversation/{conversation}', UpdateDashboardConversationController::class)->name('dashboard.conversation.update');
     Route::post('/context', function (Request $request, EmbeddWebV2 $embedWeb, SourceUrl $sourceUrl) {
         $url = $request->input('url', null);
         $embedWeb->handle($url);
