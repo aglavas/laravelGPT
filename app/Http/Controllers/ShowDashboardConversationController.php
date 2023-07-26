@@ -15,8 +15,14 @@ class ShowDashboardConversationController extends Controller
      */
     public function __invoke(Request $request, Conversation $conversation): \Inertia\Response
     {
+        $conversation->load('messages');
+        /** @var \Illuminate\Database\Eloquent\Collection $messages **/
+        $messages = $conversation->messages;
+        $messages = $messages->sortBy('id');
+        $conversationArray = $conversation->toArray();
+        $conversationArray['messages'] = $messages->values()->toArray();
         return Inertia::render('Conversation', [
-           'conversation' => $conversation->load('messages')->toArray()
+           'conversation' => $conversationArray
         ]);
     }
 }

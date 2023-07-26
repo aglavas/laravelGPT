@@ -67,7 +67,7 @@ class Message extends Model
      */
     public function userMessage(): Message
     {
-        return $this->conversation->messages()->where('role', 'user')->where('id', '<', $this->id)->oldest()->first();
+        return $this->conversation->messages()->where('role', 'user')->where('id', '<', $this->id)->orderBy('id', 'ASC')->first();
     }
 
     /**
@@ -89,7 +89,18 @@ class Message extends Model
     public function markEmbedded(bool $embedded = true): void
     {
         $metadata = $this->metadata ?? [];
-        $metadata['embedded'] = true;
+        $metadata['embedded'] = $embedded;
         $this->metadata = $metadata;
+
+        if ($this->role === 'assistant') {
+            $queryBuilder = $this->newQuery();
+            $currentId = $this->id;
+            $userId = $currentId - 1;
+            $userMessage = $queryBuilder->where('id', $userId)->where('role', 'user')->first();
+            $metadata = $userMessage->metadata;
+            $metadata['embedded'] = $embedded;
+            $userMessage->metadata = $metadata;
+            $userMessage->save();
+        }
     }
 }

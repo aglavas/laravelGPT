@@ -19,23 +19,22 @@ class UpdateDashboardConversationController extends Controller
     public function __invoke(Request $request, Conversation $conversation): RedirectResponse
     {
         $messages = $request->input('messages');
+        $messageCollection = collect($messages)->sortBy('id');
 
-        $messages = array_reverse($messages);
-
-        foreach ($messages as $requestMessage) {
+        foreach ($messageCollection as $requestMessage) {
             /** @var Message $message */
             $message = $conversation->messages->firstWhere('id', $requestMessage['id']);
             $message->content = $requestMessage['content'];
-            $message->useable = $requestMessage['useable'];
+            $message->usable = $requestMessage['usable'];
 
-            if ($message->role == 'user') {
-                if ($message->useable && $message->hasBeenEmbedded() === false) {
-                    EmbedConversationMessage::make()->handle($message);
-                    $message->markEmbedded();
-                } elseif (!$message->useable) {
-                    //@todo Delete embeddings
-                    $message->markEmbedded(false);
-                }
+            if (
+                $message->role == 'assistant' && ($message->usable && ($message->hasBeenEmbedded() === false))
+            ) {
+                EmbedConversationMessage::make()->handle($message);
+                $message->markEmbedded();
+            } elseif (!$message->usable && $message->hasBeenEmbedded()) {
+                //@todo Delete embeddings
+                $message->markEmbedded(false);
             }
 
             $message->save();

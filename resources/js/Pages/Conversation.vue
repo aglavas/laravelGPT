@@ -18,21 +18,17 @@ const submitForm = () => {
     });
 };
 
-const togglePartner = (message) => {
-    const index = form.messages.findIndex(m => m.id === message.id);
-    const nextMessage = form.messages[index + 1];
-    const previousMessage = form.messages[index - 1];
+const togglePartner = (clickedMessage, clickedIndex) => {
+    let partnerIndex = clickedMessage.role === 'user' ? clickedIndex + 1 : clickedIndex - 1;
+    let partnerMessage = form.messages[partnerIndex];
 
-    if (message.role === 'user') {
-        if (nextMessage && nextMessage.role === 'assistant') {
-            nextMessage.useable = !nextMessage.useable;
-        }
-    } else {
-        if (previousMessage && previousMessage.role === 'user') {
-            previousMessage.useable = !previousMessage.useable;
-        }
+    if (partnerMessage && partnerMessage.role !== clickedMessage.role) {
+        let newUsable = !form.messages[clickedIndex].usable;
+        form.messages[clickedIndex].usable = newUsable;
+        form.messages[partnerIndex].usable = newUsable;
     }
 }
+
 </script>
 
 <template>
@@ -52,7 +48,7 @@ const togglePartner = (message) => {
                                 <div class="space-y-4">
                                     <div class="flex items-center space-x-2" v-for="(message, idx) in conversation.messages">
                                         <div>
-                                            <input @click="togglePartner(message)" type="checkbox" v-model="form.messages[idx].useable">
+                                            <input @click="togglePartner(message, idx)" type="checkbox" v-model="form.messages[idx].usable">
                                         </div>
                                         <div class="flex-1">
                                             <div>{{ message.role }}</div>

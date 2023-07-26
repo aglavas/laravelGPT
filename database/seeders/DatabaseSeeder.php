@@ -19,6 +19,19 @@ class DatabaseSeeder extends Seeder
     {
         // \App\Models\User::factory(10)->create();
 
+        $urls = [
+            'https://entreprenik.com/blog/non-sentient-civilizations',
+            'https://entreprenik.com/blog/deadlines-and-timeframes-revisited',
+            'https://entreprenik.com/blog/poor-definitions-productivity',
+            'https://entreprenik.com/blog/scaling-a-saas-to-usd3m-year-on-the-back-of-a-monolith',
+            'https://entreprenik.com/blog/any-sufficiently-advanced-technology'
+        ];
+
+        $embedUrl = 'http://localhost:8000/embed';
+
+        Http::pool(fn (Pool $pool) => collect($urls)
+            ->map(fn (string $url) => $pool->get($embedUrl, ['url' => $url])));
+
         Message::factory()
             ->count(6)
             ->for(Conversation::factory())
@@ -32,17 +45,5 @@ class DatabaseSeeder extends Seeder
              'email' => 'test2@example.com',
          ]);
 
-         $urls = [
-            'https://entreprenik.com/blog/non-sentient-civilizations',
-            'https://entreprenik.com/blog/deadlines-and-timeframes-revisited',
-            'https://entreprenik.com/blog/poor-definitions-productivity',
-            'https://entreprenik.com/blog/scaling-a-saas-to-usd3m-year-on-the-back-of-a-monolith',
-            'https://entreprenik.com/blog/any-sufficiently-advanced-technology'
-         ];
-
-         $embedUrl = 'http://localhost:8000/embed';
-
-         Http::pool(fn (Pool $pool) => collect($urls)
-             ->map(fn (string $url) => $pool->get($embedUrl, ['url' => $url])));
     }
 }
