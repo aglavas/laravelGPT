@@ -37,11 +37,13 @@ class Conversation extends Model
         return $this->messages()
             ->where('id', '<=', $upTo->id)
             ->get()
-            //->reject(fn (Message $message) => $message->isPending())
+            ->reject(fn (Message $message) => $message->isPending())
+            ->values()
             ->map(fn (Message $message) => [
                 'content' => $upTo->id === $message->id ? $message->contentWithContextResults() : $message->content,
                 'role' => $message->role
             ])
+            ->values()
             ->toArray();
     }
 }

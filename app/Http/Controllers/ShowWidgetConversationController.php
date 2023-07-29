@@ -26,11 +26,15 @@ class ShowWidgetConversationController extends Controller
         return Inertia::render('Widget/Widget', [
            'conversation' => [
                'id' => $conversation->public_id,
-               'messages' => $messages->map(fn (Message $message) => [
-                   'id' => $message->public_id,
-                   'content' => $message->content,
-                   'role' => $message->role
-               ])->values()->toArray(),
+               'messages' => $messages
+                   ->reject(fn (Message $message) => $message->role == 'system')
+                   ->reject(fn (Message $message) => $message->isPending())
+                   ->values()
+                   ->map(fn (Message $message) => [
+                       'id' => $message->public_id,
+                       'content' => $message->content,
+                       'role' => $message->role
+                    ])->values()->toArray(),
            ]
         ]);
     }

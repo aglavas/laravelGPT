@@ -45,7 +45,7 @@ Route::get('/embed', function (Request $request, EmbeddWebV2 $embedWeb, SourceUr
     ]);
 });
 
-Route::prefix('widget')->group(function () {
+Route::prefix('widget')->middleware(['widget.origin'])->group(function () {
     Route::get('/', function () {
         return Inertia::render('Widget/Widget', [
             'conversation' => null

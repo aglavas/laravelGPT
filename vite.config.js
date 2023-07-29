@@ -8,6 +8,7 @@ export default defineConfig({
             input: [
                 'resources/js/app.js',
                 'resources/js/widget.js',
+                'resources/js/embed.js'
             ],
             refresh: true,
         }),
