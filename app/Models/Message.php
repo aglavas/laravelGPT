@@ -49,16 +49,16 @@ class Message extends Model
         return (($this->role === 'assistant') && ($this->content === ''));
     }
 
-    /**
-     * Content with context
-     *
-     * @return string
-     */
-    public function contentWithContextResults(): string
-    {
-        $context = collect($this->metadata['context'] ?? [])->pluck('metadata.text');
-        return $this->content . "\n\n" . $context->map(fn (string $text) => "Context: $text")->implode("\n");
-    }
+//    /**
+//     * Content with context
+//     *
+//     * @return string
+//     */
+//    public function contentWithContextResults(): string
+//    {
+//        $context = collect($this->metadata['context'] ?? [])->pluck('metadata.text');
+//        return $this->content . "\n\n" . $context->map(fn (string $text) => "Context: $text")->implode("\n");
+//    }
 
     /**
      * Return next assistant message

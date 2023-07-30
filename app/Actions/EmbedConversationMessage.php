@@ -35,12 +35,15 @@ class EmbedConversationMessage
             'input' => $content,
         ])->embeddings;
 
+        $conversationId = $promptMessage->conversation_id;
+        $messageId = $promptMessage->conversation_id;
+
         $pinecone->index('laravelgpt')->vectors()->upsert([
             [
-                'id' => 'prompt-' . $promptMessage->id,
+                'id' => "prompt-$conversationId-$messageId",
                 'values' => $embeddings[0]->embedding,
                 'metadata' => [
-                    'text' => $promptMessage->content,
+                    'text' => $content,
                     'prompt_message_id' => $promptMessage->id,
                     'type' => 'conversation'
                 ]

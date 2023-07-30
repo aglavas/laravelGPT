@@ -12,15 +12,19 @@
 
         <!-- Scripts -->
         @routes
-        @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
+        @if((Route::current()->getPrefix() == '/widget') && ($page['component'] != 'Widget/Widget'))
+            @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
+        @else
+            @vite(['resources/js/widget.js', "resources/js/Pages/Widget/Widget.vue"])
+        @endif
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
         @inertia
-        <script>(function () { var e=document.createElement("iframe");e.src="http://localhost:8000/widget/widget";e.style.width="3.5rem";e.style.height="3.5rem";e.style.border="3.5rem";e.scrolling="no";e.id="chatbot_iframe";var t=document.createElement("div");t.style.position="fixed";t.style.bottom="10px";t.style.right="10px";t.appendChild(e);document.body.appendChild(t);window.addEventListener("message",function(d){const i=document.getElementById("chatbot_iframe");d.data.action==="chatbot_toggle"&&(d.data.open?(i.style.height="420px",i.style.width="300px"):setTimeout(function(){i.style.height="3.5rem",i.style.width="3.5rem"},300))});})();
+        <script>(function () { var e=document.createElement("iframe");e.src="http://localhost:8000/widget";e.style.width="3.5rem";e.style.height="3.5rem";e.style.border="3.5rem";e.scrolling="no";e.id="chatbot_iframe";var t=document.createElement("div");t.style.position="fixed";t.style.bottom="10px";t.style.right="10px";t.appendChild(e);document.body.appendChild(t);window.addEventListener("message",function(d){const i=document.getElementById("chatbot_iframe");d.data.action==="chatbot_toggle"&&(d.data.open?(i.style.height="420px",i.style.width="300px"):setTimeout(function(){i.style.height="3.5rem",i.style.width="3.5rem"},300))});})();
         </script>
-        <div style="position: fixed; bottom: 10px; right: 10px;">
-            <iframe src="{{ env('VITE_APP_URL', null) }}" style="width: 3.5rem; height: 3.5rem; border: none; overflow: hidden;" scrolling="no"></iframe>
-        </div>
+{{--        <div style="position: fixed; bottom: 10px; right: 10px;">--}}
+{{--            <iframe src="{{ env('VITE_APP_URL', null) }}" style="width: 3.5rem; height: 3.5rem; border: none; overflow: hidden;" scrolling="no"></iframe>--}}
+{{--        </div>--}}
     </body>
 </html>

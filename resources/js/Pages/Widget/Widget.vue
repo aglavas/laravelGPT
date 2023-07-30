@@ -15,7 +15,10 @@ const form = useForm({
 const submitForm = () => {
   form.post(route('widget.conversation.prompt', props.conversation?.id ?? 'new'), {
       preserveScroll: true,
-      Success: () => form.reset()
+      onSuccess: () => {
+          form.reset();
+          scrollToBottom();
+      }
   })
 };
 
@@ -56,7 +59,11 @@ const setupEcho = () => {
 const scrollToBottom = () => {
     nextTick(() => {
         const messages = document.querySelector('.messages');
-        messages.scrollTop = messages.scrollHeight;
+
+        if (messages) {
+            messages.scrollTop = messages.scrollHeight;
+        }
+
     });
 }
 
@@ -78,9 +85,7 @@ onMounted(() => {
 
     scrollToBottom();
 })
-
 </script>
-
 <template>
     <div class="min-h-screen relative">
         <transition
@@ -92,9 +97,6 @@ onMounted(() => {
             leave-to-class="transform opacity-0 scale-95"
         >
             <div v-show="open" class="bg-white border-2 border-gray-100 shadow">
-
-            </div>
-            <div v-if="open" class="bg-white border-2 border-gray-100 shadow-sm rounded-lg">
                 <div class="px-8 py-3 space-y-4 h-[280px] overflow-y-scroll">
                     <div v-for="message in messages" :key="message.id">
                         <div class="flex" :class="[message.role === 'user' ? 'justify-end' : 'justify-start']">
@@ -134,10 +136,6 @@ onMounted(() => {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-
-        </div>
-        <div class="flex justify-end">
-            <button @click="open = !open">Open</button>
         </div>
     </div>
 </template>

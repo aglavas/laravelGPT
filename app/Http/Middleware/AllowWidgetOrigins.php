@@ -19,7 +19,11 @@ class AllowWidgetOrigins
     {
         $response = $next($request);
 
-        if (app()->isProduction()) {
+        if (app()->environment('local')) {
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            $response->headers->set('Content-Security-Policy', "frame-ancestors *");
+        } else {
+            // For production environment
             $response->headers->set('Access-Control-Allow-Origin', 'https://my-site.com');
             $response->headers->set('Content-Security-Policy', "frame-ancestors 'self' https://my-site.com");
         }

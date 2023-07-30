@@ -25,25 +25,4 @@ class Conversation extends Model
     {
         return $this->hasMany(Message::class, 'conversation_id', 'id');
     }
-
-    /**
-     * Return all messages from conversation except the pending one
-     *
-     * @param Message $upTo
-     * @return array
-     */
-    public function toOpenAIChatMessages(Message $upTo): array
-    {
-        return $this->messages()
-            ->where('id', '<=', $upTo->id)
-            ->get()
-            ->reject(fn (Message $message) => $message->isPending())
-            ->values()
-            ->map(fn (Message $message) => [
-                'content' => $upTo->id === $message->id ? $message->contentWithContextResults() : $message->content,
-                'role' => $message->role
-            ])
-            ->values()
-            ->toArray();
-    }
 }
