@@ -43,11 +43,18 @@ class EmbeddWebV2
     public bool $externalOnly = true;
 
     /**
+     * @param Pinecone $pinecone
+     */
+    public function __construct(public readonly Pinecone $pinecone)
+    {
+
+    }
+
+    /**
      *
      */
     public function handle(string $url): bool
     {
-        $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
         $cacheKey = 'scrape:' . md5($url);
         if (Cache::has($cacheKey)) {
             $scrapedData = Cache::get($cacheKey);
@@ -81,7 +88,8 @@ class EmbeddWebV2
             'model' => 'text-embedding-ada-002',
             'input' => $content,
         ])->embeddings;
-        $pinecone->index('laravelgpt')->vectors()->delete([], 'chatbot', false, [
+
+        $this->pinecone->index('laravelgpt')->vectors()->delete([], 'chatbot', false, [
             'url' => [
                 '$eq' => $url
             ],
@@ -89,7 +97,8 @@ class EmbeddWebV2
                 '$eq' => 'web'
             ]
         ]);
-        $pinecone->index('laravelgpt')->vectors()->upsert(
+
+        $this->pinecone->index('laravelgpt')->vectors()->upsert(
             collect($embeddings)->map(function ($embedding, $index) use ($content, $url) {
                 return [
                     'id' => md5($url) . '-' . $index,
@@ -103,20 +112,6 @@ class EmbeddWebV2
             })->toArray(),
             'chatbot'
         );
-
-//        $results = $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'web', [
-//            'type' => [
-//                '$eq' => 'web-scrapping'
-//            ]
-////            'category' => [
-////                '$in' => ['product']
-////            ]
-//        ], 4)->json();
-
-        activity()
-            ->event('embedd_web')
-            ->withProperties([$url])
-            ->log('EMBEDD_LOG');
 
         return true;
     }

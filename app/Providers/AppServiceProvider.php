@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Lorisleiva\Actions\Facades\Actions;
+use \Probots\Pinecone\Client as Pinecone;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,6 +15,11 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         Actions::registerCommands();
+
+        $this->app->bind(Pinecone::class, fn () => new Pinecone(
+            config('services.pinecone.key', null),
+            config('services.pinecone.environment', null)
+        ));
     }
 
     /**

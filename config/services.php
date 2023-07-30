@@ -32,6 +32,11 @@ return [
         'secret' => env('SCENARIO_API_SECRET'),
     ],
 
+    'pinecone' => [
+        'key' => env('PINECONE_API_KEY'),
+        'environment' => env('PINECONE_ENV'),
+    ],
+
     'stability_ai' => [
         'key' => env('STABILITY_API_KEY'),
     ],

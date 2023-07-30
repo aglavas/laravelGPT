@@ -2,11 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Conversation;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ *
  */
 class MessageFactory extends Factory
 {
@@ -19,7 +19,21 @@ class MessageFactory extends Factory
     {
         return [
             'role' => $this->faker->randomElement(['user', 'assistant']),
-            'content' => $this->faker->paragraphs(2, true)
+            'content' => $this->faker->sentence(2, true),
+            'conversation_id' => Conversation::factory()
         ];
+    }
+
+    /**
+     * Create pending message
+     *
+     * @return self
+     */
+    public function pending(): self
+    {
+        return  $this->state([
+            'role' => 'assistant',
+            'content' => '',
+        ]);
     }
 }

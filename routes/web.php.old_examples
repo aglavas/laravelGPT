@@ -173,3 +173,20 @@ Route::post('/chat/{id}', function (Request $request, FirstPrompt $prompt, $id) 
 
     return redirect()->route('conversation', ['id' => $conversation->id]);
 })->name('chat');
+
+
+
+//        $results = $pinecone->index('laravelgpt')->vectors()->query($embeddings[0]->embedding, 'web', [
+//            'type' => [
+//                '$eq' => 'web-scrapping'
+//            ]
+////            'category' => [
+////                '$in' => ['product']
+////            ]
+//        ], 4)->json();
+
+activity()
+            ->event('embedd_web')
+            ->withProperties([$url])
+            ->log('EMBEDD_LOG');
+
