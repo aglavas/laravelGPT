@@ -13,6 +13,7 @@
         "laravel/sanctum": "^3.2",
         "laravel/tinker": "^2.8",
         "lorisleiva/laravel-actions": "^2.6",
+        "mis3085/tiktoken-for-laravel": "^0.1.2",
         "openai-php/laravel": "^0.6.0",
         "probots-io/pinecone-php": "*",
         "pusher/pusher-php-server": "^7.2",

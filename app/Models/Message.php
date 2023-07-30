@@ -19,7 +19,7 @@ class Message extends Model
     /**
      * @var array
      */
-    protected $fillable = ['content', 'role', 'metadata', 'usable'];
+    protected $fillable = ['content', 'role', 'metadata', 'usable', 'conversation_id'];
 
     /**
      * @var string[]
@@ -37,6 +37,16 @@ class Message extends Model
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class, 'conversation_id', 'id');
+    }
+
+    /**
+     * Usage costs
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
+     */
+    public function usages()
+    {
+        return $this->morphMany(Usage::class, 'usageable');
     }
 
     /**
