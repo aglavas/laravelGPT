@@ -22,8 +22,9 @@ class HandlePromptController extends Controller
             $conversation = Conversation::query()->where('public_id', $conversationId)->firstOrFail();
         }
 
+        //Trimming prompt is important!
         $promptMessage = $conversation->messages()->create([
-            'content' => $request->input('prompt', null),
+            'content' => trim($request->input('prompt', null)),
             'role' => 'user'
         ]);
 

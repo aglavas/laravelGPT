@@ -27,10 +27,23 @@ class HandlePrompt
         $conversationMessages = $this->addConversationMessages($promptMessage);
         $systemMessage = AddContextToPromptMessage::make()->handle($promptMessage);
         $allMessages = array_merge([$systemMessage], $conversationMessages);
-        $response = OpenAI::chat()->create([
-            'model' => 'gpt-3.5-turbo-16k',
-            'messages' => $allMessages
-        ]);
+
+//        $response = OpenAI::chat()->create([
+//            'model' => 'gpt-3.5-turbo-16k',
+//            'messages' => $allMessages
+//        ]);
+
+        try {
+            $response = retry(2, fn() => OpenAI::chat()->create([
+                'model' => 'gpt-3.5-turbo-16k',
+                'messages' => $allMessages
+            ]), 5000);
+        } catch (\Exception $exception) {
+            $pendingMessage->markEmbedded(false);
+            //PromptResponseError::disptach($pendingMessage);
+            //report($exception);
+            return;
+        }
 
         activity()
             ->event('PROMPT_HANDLED')
