@@ -16,10 +16,15 @@ class AppServiceProvider extends ServiceProvider
     {
         Actions::registerCommands();
 
-        $this->app->bind(Pinecone::class, fn () => new Pinecone(
-            config('services.pinecone.key', null),
-            config('services.pinecone.environment', null)
-        ));
+        $pineConeKey = config('services.pinecone.key', null);
+        $pineConeEnv = config('services.pinecone.environment', null);
+
+        if ($pineConeKey && $pineConeEnv) {
+            $this->app->bind(Pinecone::class, fn () => new Pinecone(
+                config('services.pinecone.key'),
+                config('services.pinecone.environment')
+            ));
+        }
     }
 
     /**

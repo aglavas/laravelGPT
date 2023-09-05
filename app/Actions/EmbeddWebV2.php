@@ -43,18 +43,11 @@ class EmbeddWebV2
     public bool $externalOnly = true;
 
     /**
-     * @param Pinecone $pinecone
-     */
-    public function __construct(public readonly Pinecone $pinecone)
-    {
-
-    }
-
-    /**
      *
      */
     public function handle(string $url): bool
     {
+        $pinecone = new Pinecone(env('PINECONE_API_KEY'), env('PINECONE_ENV'));
         $cacheKey = 'scrape:' . md5($url);
         if (Cache::has($cacheKey)) {
             $scrapedData = Cache::get($cacheKey);
@@ -89,7 +82,7 @@ class EmbeddWebV2
             'input' => $content,
         ])->embeddings;
 
-        $this->pinecone->index('laravelgpt')->vectors()->delete([], 'chatbot', false, [
+        $pinecone->index('laravelgpt')->vectors()->delete([], 'chatbot', false, [
             'url' => [
                 '$eq' => $url
             ],
@@ -98,7 +91,7 @@ class EmbeddWebV2
             ]
         ]);
 
-        $this->pinecone->index('laravelgpt')->vectors()->upsert(
+        $pinecone->index('laravelgpt')->vectors()->upsert(
             collect($embeddings)->map(function ($embedding, $index) use ($content, $url) {
                 return [
                     'id' => md5($url) . '-' . $index,
